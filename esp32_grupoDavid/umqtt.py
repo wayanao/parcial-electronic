@@ -24,7 +24,7 @@ class MQTTClient:
         self.port = port
         self.ssl = ssl
         self.ssl_params = ssl_params
-        self.pid = pid_gen()
+        self.pid = 0
         self.cb = None
         self.user = user
         self.pswd = password
