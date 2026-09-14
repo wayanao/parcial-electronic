@@ -2,37 +2,26 @@ from machine import Pin
 from time import sleep
 
 # ==========================================
-# ENTRADAS DEL DIP SWITCH
+# ENTRADAS DEL DIP SWITCH (patron binario de 4 bits)
 # ==========================================
-# Según el circuito de la imagen:
-# DIP 1 -> GPIO 32  (bit mas significativo, peso 8)
-# DIP 2 -> GPIO 33  (peso 4)
-# DIP 3 -> GPIO 25  (peso 2)
-# DIP 4 -> GPIO 26  (bit menos significativo, peso 1)
-#
-# Solo se usan 4 bits. Si tu circuito trae un 5to switch en GPIO 27,
-# queda cableado pero sin usar en este código (no afecta nada).
-#
-# Si al probarlo ves que el orden queda "al revés" (ej. mueves el
-# switch 1 y cambia como si fuera el de menor peso), solo invierte
-# esta lista: dip = list(reversed(dip))
+# Se lee como DIP1 DIP2 DIP3 DIP4 (de izquierda a derecha),
+# igual que se escribe un binario normal. Ej: 0001 -> DIP4
+# encendido -> valor 1.
+# DIP 1 -> GPIO 32  (bit 3, valor 8)  <- MSB
+# DIP 2 -> GPIO 33  (bit 2, valor 4)
+# DIP 3 -> GPIO 25  (bit 1, valor 2)
+# DIP 4 -> GPIO 26  (bit 0, valor 1)  <- LSB
 
 dip = [
     Pin(32, Pin.IN, Pin.PULL_DOWN),
     Pin(33, Pin.IN, Pin.PULL_DOWN),
     Pin(25, Pin.IN, Pin.PULL_DOWN),
-    Pin(26, Pin.IN, Pin.PULL_DOWN),
+    Pin(26, Pin.IN, Pin.PULL_DOWN)
 ]
-
 
 # ==========================================
 # DISPLAY DE 7 SEGMENTOS
 # ==========================================
-# Segmentos: a, b, c, d, e, f, g
-#
-# Ajusta estos GPIO si el orden de los
-# cables de tu display es diferente.
-
 a = Pin(23, Pin.OUT)
 b = Pin(22, Pin.OUT)
 c = Pin(21, Pin.OUT)
@@ -43,18 +32,9 @@ g = Pin(17, Pin.OUT)
 
 segmentos = [a, b, c, d, e, f, g]
 
-
 # ==========================================
-# NUMEROS DEL DISPLAY
+# NUMEROS DEL DISPLAY (solo decimal 0-9)
 # ==========================================
-# 1 = segmento encendido
-# 0 = segmento apagado
-#
-# 4 bits reales = valores de 0 a 15, por eso la tabla llega hasta
-# el 15 (10-15 se muestran en hexadecimal: A, b, C, d, E, F).
-# Sin esto, un valor binario como 1111 (=15) tumbaba el ESP32
-# (IndexError) al no existir esa posición en la tabla.
-
 numeros = [
     # a b c d e f g
     [1, 1, 1, 1, 1, 1, 0],  # 0
@@ -66,38 +46,23 @@ numeros = [
     [1, 0, 1, 1, 1, 1, 1],  # 6
     [1, 1, 1, 0, 0, 0, 0],  # 7
     [1, 1, 1, 1, 1, 1, 1],  # 8
-    [1, 1, 1, 1, 0, 1, 1],  # 9
-    [1, 1, 1, 0, 1, 1, 1],  # 10 -> A
-    [0, 0, 1, 1, 1, 1, 1],  # 11 -> b
-    [1, 0, 0, 1, 1, 1, 0],  # 12 -> C
-    [0, 1, 1, 1, 1, 0, 1],  # 13 -> d
-    [1, 0, 0, 1, 1, 1, 1],  # 14 -> E
-    [1, 0, 0, 0, 1, 1, 1],  # 15 -> F
+    [1, 1, 1, 1, 0, 1, 1]   # 9
 ]
 
-
-# ==========================================
-# FUNCION PARA MOSTRAR UN NUMERO
-# ==========================================
-
 def mostrar_numero(numero):
-
     for i in range(7):
         segmentos[i].value(numeros[numero][i])
 
-
 # ==========================================
-# RED Y MQTT  (Paso 1 de la guía)
+# RED Y MQTT
 # ==========================================
 WIFI_SSID   = "Wokwi-GUEST"
 WIFI_PASS   = ""
-MQTT_BROKER = "broker.hivemq.com"   # solo el hostname, sin "://"
+MQTT_BROKER = "broker.hivemq.com"
 
-# Debe coincidir EXACTAMENTE con los tópicos del frontend (script.js)
 GRUPO = "grupoDavid"
-TOPIC_ESTADO  = "clase/decoder/" + GRUPO + "/estado"   # ESP32 -> Web (monitoreo)
-TOPIC_CONTROL = "clase/decoder/" + GRUPO + "/control"  # Web -> ESP32 (control)
-
+TOPIC_ESTADO  = "clase/decoder/" + GRUPO + "/estado"
+TOPIC_CONTROL = "clase/decoder/" + GRUPO + "/control"
 
 def conectar_wifi():
     import network, time
@@ -107,7 +72,6 @@ def conectar_wifi():
 
     inicio = time.ticks_ms()
     while not wlan.isconnected():
-        # Sin este timeout el simulador se congela indefinidamente
         if time.ticks_diff(time.ticks_ms(), inicio) > 10000:
             raise OSError("WiFi timeout - verifique la red en Wokwi")
         time.sleep_ms(300)
@@ -116,9 +80,7 @@ def conectar_wifi():
     print("WiFi OK - IP:", wlan.ifconfig()[0])
     return wlan
 
-
-from umqtt.simple import MQTTClient
-
+from umqtt import MQTTClient
 
 def al_recibir_del_frontend(topic, msg):
     try:
@@ -129,9 +91,7 @@ def al_recibir_del_frontend(topic, msg):
         else:
             print("Valor fuera de rango:", numero_remoto)
     except ValueError:
-        # No dejar el except vacío: imprimir siempre el error
         print("Mensaje no numérico recibido:", msg)
-
 
 conectar_wifi()
 
@@ -141,35 +101,30 @@ client.connect()
 client.subscribe(TOPIC_CONTROL)
 print("MQTT listo - escuchando en:", TOPIC_CONTROL)
 
-
 # ==========================================
 # PROGRAMA PRINCIPAL
 # ==========================================
-
 ultimo_valor = -1
 
 while True:
-
-    # 1. Revisar si llegó un comando remoto (no bloqueante)
     client.check_msg()
 
-    # 2. Leer el DIP como número BINARIO real (no como conteo).
-    #    bits_str queda como "1010", "0001", etc. (DIP1..DIP4)
-    bits_str = "".join([str(pin.value()) for pin in dip])
-    valor_dip = int(bits_str, 2)   # "1010" -> 10  (binario -> decimal)
+    valor = 0
+    for i, interruptor in enumerate(dip):
+        if interruptor.value() == 1:
+            valor += (1 << (3 - i))
 
-    # 3. Actualizar display y publicar SOLO cuando cambia el DIP.
-    #    (si actualizáramos en cada vuelta del while, un comando remoto
-    #    se borraría solo 0.1s después de presionarlo, porque la
-    #    lectura del DIP lo pisaría de nuevo)
-    if valor_dip != ultimo_valor:
-        mostrar_numero(valor_dip)
-        print("DIP:", bits_str, "-> valor binario:", valor_dip)
+    if valor != ultimo_valor:
+        # El display fisico solo tiene 0-9; si el binario da 10-15,
+        # se deja en 9 para no romper la tabla.
+        mostrar_numero(min(valor, 9))
+        print("Valor binario (DIP1..DIP4):", valor)
 
-        payload = bits_str + "," + str(valor_dip)
+        bits_str = "".join([str(pin.value()) for pin in dip])
+        payload = bits_str + "," + str(valor)
         client.publish(TOPIC_ESTADO, payload.encode())
         print("Publicado:", payload)
 
-        ultimo_valor = valor_dip
+        ultimo_valor = valor
 
     sleep(0.1)
