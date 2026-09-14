@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Super Control Bros</title>
+
+  <!-- Fuente estilo "pixel" para el aire retro de Mario Bros -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Nubes decorativas -->
+  <div class="nube nube1"></div>
+  <div class="nube nube2"></div>
+  <div class="nube nube3"></div>
+
+  <header class="banner-ladrillos">
+    <div class="logo-m">M</div>
+    <h1>SUPER CONTROL BROS</h1>
+    <div class="logo-m">M</div>
+  </header>
+
+  <main class="zona-juego">
+
+    <!-- Estado de conexión MQTT -->
+    <section class="panel panel-estado">
+      <span id="estado" class="indicador">● Conectando...</span>
+    </section>
+
+    <!-- Display principal: valor recibido / enviado -->
+    <section class="panel panel-display">
+      <p class="titulo-panel">🪙 VALOR ACTUAL 🪙</p>
+
+      <div class="bloque-moneda">
+        <div id="display_num" class="pantalla-digito">–</div>
+      </div>
+
+      <div id="display_bin" class="visor-bits">Bits: [ - - - - ]</div>
+      <div id="origen" class="label-origen">Origen: esperando datos...</div>
+    </section>
+
+    <!-- Teclado de control 0-9 -->
+    <section class="panel panel-teclado">
+      <p class="titulo-panel">🎮 ENVIAR COMANDO 🎮</p>
+      <div id="teclado" class="teclado"></div>
+    </section>
+
+    <button id="btnReconectar" class="btn-tuberia">🔄 Reconectar</button>
+
+  </main>
+
+  <footer class="piso-ladrillos"></footer>
+
+  <!-- Librería MQTT para navegador (WebSockets) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

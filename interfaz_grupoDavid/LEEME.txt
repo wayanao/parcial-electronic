@@ -1,0 +1,84 @@
+===========================================================
+ SUPER CONTROL BROS - Interfaz web para Wokwi (MQTT)
+===========================================================
+
+Que es esto
+-----------
+Una interfaz sencilla en HTML + CSS + JS puro (sin frameworks,
+sin instalar nada) con look inspirado en Mario Bros, para
+controlar y monitorear tu ESP32 en Wokwi via MQTT, siguiendo
+la Opcion B de la guia (Actividad 3 - Parcial 1).
+
+Archivos
+--------
+- index.html   -> estructura de la pagina
+- style.css    -> estilos (tema Mario Bros)
+- script.js    -> logica MQTT (conectar, recibir, enviar)
+- LEEME.txt    -> este archivo
+
+Como usarla
+-----------
+1. Abre index.html haciendo doble clic (se abre en tu navegador).
+   No necesitas servidor ni instalar nada, es 100% frontend.
+2. El indicador de arriba debe ponerse en VERDE y decir "Conectado".
+   Si no conecta, revisa tu internet (usa WebSockets al puerto 8884).
+3. Abre tu proyecto en Wokwi y corre el main.py de tu ESP32.
+
+Importante: que coincida con tu ESP32 (main.py)
+------------------------------------------------
+Este frontend ya viene configurado con el identificador:
+
+      GRUPO = "grupoDavid"
+
+Tu ESP32 (main.py) debe usar EXACTAMENTE los mismos topicos:
+
+      TOPIC_ENVIAR  (el ESP32 publica aqui)  = "clase/decoder/grupoDavid/estado"
+      TOPIC_RECIBIR (el ESP32 escucha aqui)  = "clase/decoder/grupoDavid/control"
+
+Y el mismo broker:
+
+      MQTT_BROKER = "broker.hivemq.com"
+
+Ya tienes un main.py listo con esto agregado en:
+      ..\esp32_grupoDavid\main.py
+Solo copia y pega ese contenido en el editor de Wokwi (reemplaza
+todo tu main.py actual).
+
+Si cambias "grupoDavid" en un lado, debes cambiarlo tambien en el
+otro (script.js y main.py), o los mensajes nunca se van a cruzar.
+
+Flujo de datos (igual que la guia)
+-----------------------------------
+- Monitoreo (ESP32 -> Web): al mover el DIP switch, el ESP32 publica
+  "bits,decimal" (ej: "1010,5") en TOPIC_ENVIAR. Esta pagina lo recibe
+  y actualiza el digito grande, el visor de bits y el origen.
+- Control (Web -> ESP32): al presionar un boton 0-9 en esta pagina,
+  se publica el numero en TOPIC_RECIBIR. El ESP32 lo recibe y lo
+  debe mostrar en su display fisico (7 segmentos).
+
+Checklist de verificacion (igual al de la guia, Opcion B)
+-----------------------------------------------------------
+[ ] 1. Al abrir index.html, el estado dice "Conectado" (verde).
+[ ] 2. Si dice "Error", abre la consola del navegador (F12 -> Console)
+       y lee el mensaje.
+[ ] 3. Mover un switch en Wokwi -> el digito y los bits en la pagina
+       deben actualizarse.
+[ ] 4. Presionar un boton 0-9 en la pagina -> el display fisico en
+       Wokwi debe cambiar.
+
+Errores comunes
+---------------
+- Pantalla dice "Conectando..." para siempre:
+  revisa que tengas internet y que no haya un firewall bloqueando
+  WebSockets (puerto 8884).
+- No llegan datos del ESP32:
+  revisa en el monitor serie de Wokwi que aparezca "Publicado: ...".
+  Si no aparece, el problema esta en el ESP32, no en esta pagina.
+- Los topicos no coinciden:
+  revisa mayusculas/minusculas, deben ser IDENTICOS en ambos lados.
+
+Personalizar el estilo (opcional)
+----------------------------------
+Los colores y textos "Mario Bros" estan en style.css (variables
+al inicio del archivo, seccion :root) e index.html. Puedes cambiar
+los emojis, colores o el titulo sin tocar la logica en script.js.
