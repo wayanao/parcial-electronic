@@ -106,7 +106,11 @@ function enviarComando(numero) {
   mensaje.destinationName = TOPIC_CONTROL;
   client.send(mensaje);
 
+  // Bits simulados (no son del DIP físico, son el equivalente binario
+  // del número que acabas de enviar por teclado)
+  const bitsSimulados = numero.toString(2).padStart(4, "0");
   elDisplayNum.textContent = numero;
+  elDisplayBin.textContent = "Bits (simulado): [ " + bitsSimulados.split("").join(" ") + " ]";
   elOrigen.textContent = "🕹️ Origen: Teclado (Web)";
   console.log("Comando enviado:", numero);
 }
