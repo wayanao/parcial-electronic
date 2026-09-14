@@ -66,23 +66,26 @@ function onConnectionLost(responseObject) {
   }
 }
 
-// Llega un mensaje del ESP32. Formato esperado: "bits,decimal" ej: "1010,5"
+// Llega un mensaje del ESP32. Formato esperado: "bits,decimal" ej: "1010,10"
+// El DIP switch son 4 bits en BINARIO REAL (peso 8-4-2-1) -> rango 0 a 15.
 function onMessageArrived(message) {
   try {
     const datos = message.payloadString.trim().split(",");
     if (datos.length !== 2) return;
 
     const [binario, decimalStr] = datos;
+    const valor = Number(decimalStr);
 
     // Validar antes de mostrar en el DOM (nunca confiar en datos externos)
     const esBinarioValido = /^[01]{4}$/.test(binario);
-    const esDecimalValido = /^\d$/.test(decimalStr);
-    if (!esBinarioValido || !esDecimalValido) {
+    const esValorValido = Number.isInteger(valor) && valor >= 0 && valor <= 15;
+    if (!esBinarioValido || !esValorValido) {
       console.warn("[onMessageArrived] Payload con formato inesperado:", message.payloadString);
       return;
     }
 
-    elDisplayNum.textContent = decimalStr;
+    // 10-15 se muestran en hexadecimal (A-F), igual que el display físico
+    elDisplayNum.textContent = valor.toString(16).toUpperCase();
     elDisplayBin.textContent = "Bits: [ " + binario.split("").join(" ") + " ]";
     elOrigen.textContent = "🎚️ Origen: DIP Switch (ESP32)";
   } catch (ex) {

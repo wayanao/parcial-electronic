@@ -49,9 +49,12 @@ otro (script.js y main.py), o los mensajes nunca se van a cruzar.
 
 Flujo de datos (igual que la guia)
 -----------------------------------
-- Monitoreo (ESP32 -> Web): al mover el DIP switch, el ESP32 publica
-  "bits,decimal" (ej: "1010,5") en TOPIC_ENVIAR. Esta pagina lo recibe
-  y actualiza el digito grande, el visor de bits y el origen.
+- Monitoreo (ESP32 -> Web): al mover el DIP switch, el ESP32 lo lee
+  como BINARIO REAL (peso 8-4-2-1, no como conteo) y publica
+  "bits,decimal" (ej: "1010,10") en TOPIC_ENVIAR. Esta pagina lo
+  recibe y actualiza el digito grande (10-15 se muestran en
+  hexadecimal: A, b, C, d, E, F, igual que el display fisico),
+  el visor de bits y el origen.
 - Control (Web -> ESP32): al presionar un boton 0-9 en esta pagina,
   se publica el numero en TOPIC_RECIBIR. El ESP32 lo recibe y lo
   debe mostrar en su display fisico (7 segmentos).

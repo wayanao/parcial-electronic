@@ -5,13 +5,17 @@ from time import sleep
 # ENTRADAS DEL DIP SWITCH
 # ==========================================
 # Según el circuito de la imagen:
-# DIP 1 -> GPIO 32
-# DIP 2 -> GPIO 33
-# DIP 3 -> GPIO 25
-# DIP 4 -> GPIO 26
+# DIP 1 -> GPIO 32  (bit mas significativo, peso 8)
+# DIP 2 -> GPIO 33  (peso 4)
+# DIP 3 -> GPIO 25  (peso 2)
+# DIP 4 -> GPIO 26  (bit menos significativo, peso 1)
 #
 # Solo se usan 4 bits. Si tu circuito trae un 5to switch en GPIO 27,
 # queda cableado pero sin usar en este código (no afecta nada).
+#
+# Si al probarlo ves que el orden queda "al revés" (ej. mueves el
+# switch 1 y cambia como si fuera el de menor peso), solo invierte
+# esta lista: dip = list(reversed(dip))
 
 dip = [
     Pin(32, Pin.IN, Pin.PULL_DOWN),
@@ -46,10 +50,10 @@ segmentos = [a, b, c, d, e, f, g]
 # 1 = segmento encendido
 # 0 = segmento apagado
 #
-# NOTA: se agregaron los patrones del 6 al 9 (antes solo llegaba
-# hasta el 5) porque el control remoto de la interfaz web puede
-# pedir cualquier dígito 0-9, y sin esto el ESP32 se caía
-# (IndexError) al recibir un 6, 7, 8 o 9 desde la web.
+# 4 bits reales = valores de 0 a 15, por eso la tabla llega hasta
+# el 15 (10-15 se muestran en hexadecimal: A, b, C, d, E, F).
+# Sin esto, un valor binario como 1111 (=15) tumbaba el ESP32
+# (IndexError) al no existir esa posición en la tabla.
 
 numeros = [
     # a b c d e f g
@@ -59,10 +63,16 @@ numeros = [
     [1, 1, 1, 1, 0, 0, 1],  # 3
     [0, 1, 1, 0, 0, 1, 1],  # 4
     [1, 0, 1, 1, 0, 1, 1],  # 5
-    [1, 0, 1, 1, 1, 1, 1],  # 6  <- nuevo
-    [1, 1, 1, 0, 0, 0, 0],  # 7  <- nuevo
-    [1, 1, 1, 1, 1, 1, 1],  # 8  <- nuevo
-    [1, 1, 1, 1, 0, 1, 1],  # 9  <- nuevo
+    [1, 0, 1, 1, 1, 1, 1],  # 6
+    [1, 1, 1, 0, 0, 0, 0],  # 7
+    [1, 1, 1, 1, 1, 1, 1],  # 8
+    [1, 1, 1, 1, 0, 1, 1],  # 9
+    [1, 1, 1, 0, 1, 1, 1],  # 10 -> A
+    [0, 0, 1, 1, 1, 1, 1],  # 11 -> b
+    [1, 0, 0, 1, 1, 1, 0],  # 12 -> C
+    [0, 1, 1, 1, 1, 0, 1],  # 13 -> d
+    [1, 0, 0, 1, 1, 1, 1],  # 14 -> E
+    [1, 0, 0, 0, 1, 1, 1],  # 15 -> F
 ]
 
 
@@ -107,7 +117,7 @@ def conectar_wifi():
     return wlan
 
 
-from umqtt import MQTTClient
+from umqtt.simple import MQTTClient
 
 
 def al_recibir_del_frontend(topic, msg):
@@ -143,25 +153,23 @@ while True:
     # 1. Revisar si llegó un comando remoto (no bloqueante)
     client.check_msg()
 
-    # 2. Leer cada entrada del DIP (tu lógica original, intacta)
-    contador = 0
-    for interruptor in dip:
-        if interruptor.value() == 1:
-            contador += 1
+    # 2. Leer el DIP como número BINARIO real (no como conteo).
+    #    bits_str queda como "1010", "0001", etc. (DIP1..DIP4)
+    bits_str = "".join([str(pin.value()) for pin in dip])
+    valor_dip = int(bits_str, 2)   # "1010" -> 10  (binario -> decimal)
 
     # 3. Actualizar display y publicar SOLO cuando cambia el DIP.
     #    (si actualizáramos en cada vuelta del while, un comando remoto
-    #    se borraría solo 0.1s después de presionarlo, porque el
-    #    conteo de switches lo pisaría de nuevo)
-    if contador != ultimo_valor:
-        mostrar_numero(contador)
-        print("Entradas activadas:", contador)
+    #    se borraría solo 0.1s después de presionarlo, porque la
+    #    lectura del DIP lo pisaría de nuevo)
+    if valor_dip != ultimo_valor:
+        mostrar_numero(valor_dip)
+        print("DIP:", bits_str, "-> valor binario:", valor_dip)
 
-        bits_str = "".join([str(pin.value()) for pin in dip])
-        payload = bits_str + "," + str(contador)
+        payload = bits_str + "," + str(valor_dip)
         client.publish(TOPIC_ESTADO, payload.encode())
         print("Publicado:", payload)
 
-        ultimo_valor = contador
+        ultimo_valor = valor_dip
 
     sleep(0.1)
